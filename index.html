@@ -1,322 +1,149 @@
 <!DOCTYPE html>
+<html>
+
 <head>
-  <meta charset="utf-8">
-  <script src="https://d3js.org/d3.v5.min.js"></script>
-  <style>
-    text{
-      font-size: 16px;
-      font-family: Open Sans, sans-serif;
-    }
-    text.title{
-      font-size: 24px;
-      font-weight: 500;
-    }
-      text.subTitle{
-        font-weight: 500;
-        fill: #777777;
-      }
-      text.caption{
-        font-weight: 400;
-        font-size: 14px;
-        fill: #777777;
-      }
-      text.label{
-        font-weight: 600;
-      }
-    
-      text.valueLabel{
-       font-weight: 300;
-      }
-    
-      text.yearText{
-        font-size: 64px;
-        font-weight: 700;
-        opacity: 0.25;
-      }
-      .tick text {
-        fill: #777777;
-      }
-      .xAxis .tick:nth-child(2) text {
-        text-anchor: start;
-      }
-      .tick line {
-        shape-rendering: CrispEdges;
-        stroke: #dddddd;
-      }
-      .tick line.origin{
-        stroke: #aaaaaa;
-      }
-      path.domain{
-        display: none;
-      }
-  </style>
+    <meta charset='utf-8' />
+    <title>Simple Bar chart</title>
+    <script src="https://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <style>
+        body {
+            font-family: "Arial", sans-serif;
+        }
+        
+        .bar {
+            fill: #5f89ad;
+        }
+        
+        .axis {
+            font-size: 13px;
+        }
+        
+        .axis path,
+        .axis line {
+            fill: none;
+            display: none;
+        }
+        
+        .label {
+            font-size: 13px;
+        }
+    </style>
+
 </head>
 
 <body>
-  <script>
-    // Feel free to change or delete any of the code you see in this editor!
-    var svg = d3.select("body").append("svg")
-      .attr("width", 960)
-      .attr("height", 600);
-    
-    
-    
-    var tickDuration = 500;
-    
-    var top_n = 12;
-    var height = 600;
-    var width = 960;
-    
-    const margin = {
-      top: 80,
-      right: 0,
-      bottom: 5,
-      left: 0
-    };
-  
-    let barPadding = (height-(margin.bottom+margin.top))/(top_n*5);
-      
-    let title = svg.append('text')
-     .attr('class', 'title')
-     .attr('y', 24)
-     .html('18 years of Interbrand’s Top Global Brands');
-  
-    let subTitle = svg.append("text")
-     .attr("class", "subTitle")
-     .attr("y", 55)
-     .html("Brand value, $m");
-   
-    let caption = svg.append('text')
-     .attr('class', 'caption')
-     .attr('x', width)
-     .attr('y', height-5)
-     .style('text-anchor', 'end')
-     .html('Source: Interbrand');
 
-     let year = 2000;
-    
-  d3.csv('https://cors-anywhere.herokuapp.com/https://github.com/sholtodouglas/heartRateChallenge/blob/master/category-brands.csv').then(function(data) {
-    //if (error) throw error;
-      
-      console.log(data);
-      
-       data.forEach(d => {
-        d.value = +d.value,
-        d.lastValue = +d.lastValue,
-        d.value = isNaN(d.value) ? 0 : d.value,
-        d.year = +d.year,
-        d.colour = d3.hsl(Math.random()*360,0.75,0.75)
-      });
+    <div id="graphic"></div>
 
-     console.log(data);
-    
-     let yearSlice = data.filter(d => d.year == year && !isNaN(d.value))
-      .sort((a,b) => b.value - a.value)
-      .slice(0, top_n);
-  
-      yearSlice.forEach((d,i) => d.rank = i);
-    
-     console.log('yearSlice: ', yearSlice)
-  
-     let x = d3.scaleLinear()
-        .domain([0, d3.max(yearSlice, d => d.value)])
-        .range([margin.left, width-margin.right-65]);
-  
-     let y = d3.scaleLinear()
-        .domain([top_n, 0])
-        .range([height-margin.bottom, margin.top]);
-  
-     let xAxis = d3.axisTop()
-        .scale(x)
-        .ticks(width > 500 ? 5:2)
-        .tickSize(-(height-margin.top-margin.bottom))
-        .tickFormat(d => d3.format(',')(d));
-  
-     svg.append('g')
-       .attr('class', 'axis xAxis')
-       .attr('transform', `translate(0, ${margin.top})`)
-       .call(xAxis)
-       .selectAll('.tick line')
-       .classed('origin', d => d == 0);
-  
-     svg.selectAll('rect.bar')
-        .data(yearSlice, d => d.name)
-        .enter()
-        .append('rect')
-        .attr('class', 'bar')
-        .attr('x', x(0)+1)
-        .attr('width', d => x(d.value)-x(0)-1)
-        .attr('y', d => y(d.rank)+5)
-        .attr('height', y(1)-y(0)-barPadding)
-        .style('fill', d => d.colour);
-      
-     svg.selectAll('text.label')
-        .data(yearSlice, d => d.name)
-        .enter()
-        .append('text')
-        .attr('class', 'label')
-        .attr('x', d => x(d.value)-8)
-        .attr('y', d => y(d.rank)+5+((y(1)-y(0))/2)+1)
-        .style('text-anchor', 'end')
-        .html(d => d.name);
-      
-    svg.selectAll('text.valueLabel')
-      .data(yearSlice, d => d.name)
-      .enter()
-      .append('text')
-      .attr('class', 'valueLabel')
-      .attr('x', d => x(d.value)+5)
-      .attr('y', d => y(d.rank)+5+((y(1)-y(0))/2)+1)
-      .text(d => d3.format(',.0f')(d.lastValue));
+    <script>
+        var data = [{
+                "name": "Apples",
+                "value": 20,
+        },
+            {
+                "name": "Bananas",
+                "value": 12,
+        },
+            {
+                "name": "Grapes",
+                "value": 19,
+        },
+            {
+                "name": "Lemons",
+                "value": 5,
+        },
+            {
+                "name": "Limes",
+                "value": 16,
+        },
+            {
+                "name": "Oranges",
+                "value": 26,
+        },
+            {
+                "name": "Pears",
+                "value": 30,
+        }];
 
-    let yearText = svg.append('text')
-      .attr('class', 'yearText')
-      .attr('x', width-margin.right)
-      .attr('y', height-25)
-      .style('text-anchor', 'end')
-      .html(~~year)
-      .call(halo, 10);
-     
-   let ticker = d3.interval(e => {
+        //sort bars based on value
+        data = data.sort(function (a, b) {
+            return d3.ascending(a.value, b.value);
+        })
 
-      yearSlice = data.filter(d => d.year == year && !isNaN(d.value))
-        .sort((a,b) => b.value - a.value)
-        .slice(0,top_n);
+        //set up svg using margin conventions - we'll need plenty of room on the left for labels
+        var margin = {
+            top: 15,
+            right: 25,
+            bottom: 15,
+            left: 60
+        };
 
-      yearSlice.forEach((d,i) => d.rank = i);
-     
-      //console.log('IntervalYear: ', yearSlice);
+        var width = 960 - margin.left - margin.right,
+            height = 500 - margin.top - margin.bottom;
 
-      x.domain([0, d3.max(yearSlice, d => d.value)]); 
-     
-      svg.select('.xAxis')
-        .transition()
-        .duration(tickDuration)
-        .ease(d3.easeLinear)
-        .call(xAxis);
-    
-       let bars = svg.selectAll('.bar').data(yearSlice, d => d.name);
-    
-       bars
-        .enter()
-        .append('rect')
-        .attr('class', d => `bar ${d.name.replace(/\s/g,'_')}`)
-        .attr('x', x(0)+1)
-        .attr( 'width', d => x(d.value)-x(0)-1)
-        .attr('y', d => y(top_n+1)+5)
-        .attr('height', y(1)-y(0)-barPadding)
-        .style('fill', d => d.colour)
-        .transition()
-          .duration(tickDuration)
-          .ease(d3.easeLinear)
-          .attr('y', d => y(d.rank)+5);
-          
-       bars
-        .transition()
-          .duration(tickDuration)
-          .ease(d3.easeLinear)
-          .attr('width', d => x(d.value)-x(0)-1)
-          .attr('y', d => y(d.rank)+5);
-            
-       bars
-        .exit()
-        .transition()
-          .duration(tickDuration)
-          .ease(d3.easeLinear)
-          .attr('width', d => x(d.value)-x(0)-1)
-          .attr('y', d => y(top_n+1)+5)
-          .remove();
+        var svg = d3.select("#graphic").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-       let labels = svg.selectAll('.label')
-          .data(yearSlice, d => d.name);
-     
-       labels
-        .enter()
-        .append('text')
-        .attr('class', 'label')
-        .attr('x', d => x(d.value)-8)
-        .attr('y', d => y(top_n+1)+5+((y(1)-y(0))/2))
-        .style('text-anchor', 'end')
-        .html(d => d.name)    
-        .transition()
-          .duration(tickDuration)
-          .ease(d3.easeLinear)
-          .attr('y', d => y(d.rank)+5+((y(1)-y(0))/2)+1);
-             
-    
-   	   labels
-          .transition()
-          .duration(tickDuration)
-            .ease(d3.easeLinear)
-            .attr('x', d => x(d.value)-8)
-            .attr('y', d => y(d.rank)+5+((y(1)-y(0))/2)+1);
-     
-       labels
-          .exit()
-          .transition()
-            .duration(tickDuration)
-            .ease(d3.easeLinear)
-            .attr('x', d => x(d.value)-8)
-            .attr('y', d => y(top_n+1)+5)
-            .remove();
-         
+        var x = d3.scale.linear()
+            .range([0, width])
+            .domain([0, d3.max(data, function (d) {
+                return d.value;
+            })]);
 
-     
-       let valueLabels = svg.selectAll('.valueLabel').data(yearSlice, d => d.name);
-    
-       valueLabels
-          .enter()
-          .append('text')
-          .attr('class', 'valueLabel')
-          .attr('x', d => x(d.value)+5)
-          .attr('y', d => y(top_n+1)+5)
-          .text(d => d3.format(',.0f')(d.lastValue))
-          .transition()
-            .duration(tickDuration)
-            .ease(d3.easeLinear)
-            .attr('y', d => y(d.rank)+5+((y(1)-y(0))/2)+1);
-            
-       valueLabels
-          .transition()
-            .duration(tickDuration)
-            .ease(d3.easeLinear)
-            .attr('x', d => x(d.value)+5)
-            .attr('y', d => y(d.rank)+5+((y(1)-y(0))/2)+1)
-            .tween("text", function(d) {
-               let i = d3.interpolateRound(d.lastValue, d.value);
-               return function(t) {
-                 this.textContent = d3.format(',')(i(t));
-              };
+        var y = d3.scale.ordinal()
+            .rangeRoundBands([height, 0], .1)
+            .domain(data.map(function (d) {
+                return d.name;
+            }));
+
+        //make y axis to show bar names
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            //no tick marks
+            .tickSize(0)
+            .orient("left");
+
+        var gy = svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis)
+
+        var bars = svg.selectAll(".bar")
+            .data(data)
+            .enter()
+            .append("g")
+
+        //append rects
+        bars.append("rect")
+            .attr("class", "bar")
+            .attr("y", function (d) {
+                return y(d.name);
+            })
+            .attr("height", y.rangeBand())
+            .attr("x", 0)
+            .attr("width", function (d) {
+                return x(d.value);
             });
-      
-     
-      valueLabels
-        .exit()
-        .transition()
-          .duration(tickDuration)
-          .ease(d3.easeLinear)
-          .attr('x', d => x(d.value)+5)
-          .attr('y', d => y(top_n+1)+5)
-          .remove();
-    
-      yearText.html(~~year);
-     
-     if(year == 2018) ticker.stop();
-     year = d3.format('.1f')((+year) + 0.1);
-   },tickDuration);
 
- });
-    
- const halo = function(text, strokeWidth) {
-  text.select(function() { return this.parentNode.insertBefore(this.cloneNode(true), this); })
-    .style('fill', '#ffffff')
-     .style( 'stroke','#ffffff')
-     .style('stroke-width', strokeWidth)
-     .style('stroke-linejoin', 'round')
-     .style('opacity', 1);
-   
-}   
-  
+        //add a value label to the right of each bar
+        bars.append("text")
+            .attr("class", "label")
+            //y position of the label is halfway down the bar
+            .attr("y", function (d) {
+                return y(d.name) + y.rangeBand() / 2 + 4;
+            })
+            //x position is 3 pixels to the right of the bar
+            .attr("x", function (d) {
+                return x(d.value) + 3;
+            })
+            .text(function (d) {
+                return d.value;
+            });
+        
+    </script>
 
-  </script>
 </body>
+
+</html>
