@@ -1,478 +1,322 @@
 <!DOCTYPE html>
-<html>
+<head>
+  <meta charset="utf-8">
+  <script src="https://d3js.org/d3.v5.min.js"></script>
   <style>
-    .center {
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-      width: 99%;
+    text{
+      font-size: 16px;
+      font-family: Open Sans, sans-serif;
     }
-
-
-    figure {
-        display: inline-block;
-        margin: 0px; /* adjust as needed */
-        
+    text.title{
+      font-size: 24px;
+      font-weight: 500;
     }
-    figure img {
-        vertical-align: top;
-    }
-    figure figcaption {
-        text-align: center;
-        margin-left: auto;
-      margin-right: auto;
-
-    }
-
-
-
-
-
+      text.subTitle{
+        font-weight: 500;
+        fill: #777777;
+      }
+      text.caption{
+        font-weight: 400;
+        font-size: 14px;
+        fill: #777777;
+      }
+      text.label{
+        font-weight: 600;
+      }
+    
+      text.valueLabel{
+       font-weight: 300;
+      }
+    
+      text.yearText{
+        font-size: 64px;
+        font-weight: 700;
+        opacity: 0.25;
+      }
+      .tick text {
+        fill: #777777;
+      }
+      .xAxis .tick:nth-child(2) text {
+        text-anchor: start;
+      }
+      .tick line {
+        shape-rendering: CrispEdges;
+        stroke: #dddddd;
+      }
+      .tick line.origin{
+        stroke: #aaaaaa;
+      }
+      path.domain{
+        display: none;
+      }
   </style>
-<meta charset="utf-8">
-<script src="distill_template.v1.js"></script>
+</head>
 
-<script type="text/front-matter">
-  title: "Linearised State Representations for Reinforcement Learning"
-  description: "Description of the post"
-  authors:
-  - Sholto Douglas: http://sholtodouglas.github.io
-  affiliations:
-  - Sydney University: http://g.co/brain
-</script>
-
-<dt-article class="centered">
-  <h1>Linearised State Representations for Reinforcement Learning</h1>
-  <!-- <h2>A description of the article</h2> -->
-  <dt-byline></dt-byline>
-
+<body>
+  <script>
+    // Feel free to change or delete any of the code you see in this editor!
+    var svg = d3.select("body").append("svg")
+      .attr("width", 960)
+      .attr("height", 600);
+    
+    
+    
+    var tickDuration = 500;
+    
+    var top_n = 12;
+    var height = 600;
+    var width = 960;
+    
+    const margin = {
+      top: 80,
+      right: 0,
+      bottom: 5,
+      left: 0
+    };
   
-
+    let barPadding = (height-(margin.bottom+margin.top))/(top_n*5);
+      
+    let title = svg.append('text')
+     .attr('class', 'title')
+     .attr('y', 24)
+     .html('18 years of Interbrand’s Top Global Brands');
   
-  <p>Recently I found a way to learn state representations such that linear interpolation between the latent
-     representations of states provided near optimal trajectories between the states in the original 
-     set of dimensions. They are learnt by optimising the representations of expert trajectories to lie along lines in higher dimensional latent space. The hard problem of finding the best path between states is reduced to the simple problem of taking a straight line between the latent representations of states - and the complexity is wrapped in the mapping to and from the latent space. This even worked for image based object manipulation tasks, and might be 
-     an interesting way to approach sub-goal generation for temporally extended manipulation tasks
-     or provide a dense reward metric where latent Euclidean distance is a ‘true’ measure of progress
-      towards the goal state. </p>
+    let subTitle = svg.append("text")
+     .attr("class", "subTitle")
+     .attr("y", 55)
+     .html("Brand value, $m");
+   
+    let caption = svg.append('text')
+     .attr('class', 'caption')
+     .attr('x', width)
+     .attr('y', height-5)
+     .style('text-anchor', 'end')
+     .html('Source: Interbrand');
 
-     <p>I used two testing environments, my own testing environment where the gold point mass must push the red block to a goal positions <dt-fn>https://github.com/sholtodouglas/pointMass</dt-fn> and RLBench <dt-cite key="James2019RLBench"></dt-cite> tasks. </p> 
+     let year = 2000;
+    
+  d3.csv('brand_values.csv').then(function(data) {
+    //if (error) throw error;
+      
+      console.log(data);
+      
+       data.forEach(d => {
+        d.value = +d.value,
+        d.lastValue = +d.lastValue,
+        d.value = isNaN(d.value) ? 0 : d.value,
+        d.year = +d.year,
+        d.colour = d3.hsl(Math.random()*360,0.75,0.75)
+      });
 
-      <div class="row">
-        <div class="column">
-          <img src="images/demo.gif" alt="Snow" style="width:100%">
-        </div>
-        <div class="column">
-          <img src="images/onthegrill2.png" alt="Forest" style="width:100%">
-        </div>
-      </div>
+     console.log(data);
+    
+     let yearSlice = data.filter(d => d.year == year && !isNaN(d.value))
+      .sort((a,b) => b.value - a.value)
+      .slice(0, top_n);
+  
+      yearSlice.forEach((d,i) => d.rank = i);
+    
+     console.log('yearSlice: ', yearSlice)
+  
+     let x = d3.scaleLinear()
+        .domain([0, d3.max(yearSlice, d => d.value)])
+        .range([margin.left, width-margin.right-65]);
+  
+     let y = d3.scaleLinear()
+        .domain([top_n, 0])
+        .range([height-margin.bottom, margin.top]);
+  
+     let xAxis = d3.axisTop()
+        .scale(x)
+        .ticks(width > 500 ? 5:2)
+        .tickSize(-(height-margin.top-margin.bottom))
+        .tickFormat(d => d3.format(',')(d));
+  
+     svg.append('g')
+       .attr('class', 'axis xAxis')
+       .attr('transform', `translate(0, ${margin.top})`)
+       .call(xAxis)
+       .selectAll('.tick line')
+       .classed('origin', d => d == 0);
+  
+     svg.selectAll('rect.bar')
+        .data(yearSlice, d => d.name)
+        .enter()
+        .append('rect')
+        .attr('class', 'bar')
+        .attr('x', x(0)+1)
+        .attr('width', d => x(d.value)-x(0)-1)
+        .attr('y', d => y(d.rank)+5)
+        .attr('height', y(1)-y(0)-barPadding)
+        .style('fill', d => d.colour);
+      
+     svg.selectAll('text.label')
+        .data(yearSlice, d => d.name)
+        .enter()
+        .append('text')
+        .attr('class', 'label')
+        .attr('x', d => x(d.value)-8)
+        .attr('y', d => y(d.rank)+5+((y(1)-y(0))/2)+1)
+        .style('text-anchor', 'end')
+        .html(d => d.name);
+      
+    svg.selectAll('text.valueLabel')
+      .data(yearSlice, d => d.name)
+      .enter()
+      .append('text')
+      .attr('class', 'valueLabel')
+      .attr('x', d => x(d.value)+5)
+      .attr('y', d => y(d.rank)+5+((y(1)-y(0))/2)+1)
+      .text(d => d3.format(',.0f')(d.lastValue));
 
+    let yearText = svg.append('text')
+      .attr('class', 'yearText')
+      .attr('x', width-margin.right)
+      .attr('y', height-25)
+      .style('text-anchor', 'end')
+      .html(~~year)
+      .call(halo, 10);
+     
+   let ticker = d3.interval(e => {
 
-      <p> The image below depicts the intuition of the method, where states or images are transformed to latent representations (here reduced to 2D using UMAP) - then 
-        a straight line path gives the correct path when mapped back to the original problem space. 
-      </p>
+      yearSlice = data.filter(d => d.year == year && !isNaN(d.value))
+        .sort((a,b) => b.value - a.value)
+        .slice(0,top_n);
 
+      yearSlice.forEach((d,i) => d.rank = i);
+     
+      //console.log('IntervalYear: ', yearSlice);
 
+      x.domain([0, d3.max(yearSlice, d => d.value)]); 
+     
+      svg.select('.xAxis')
+        .transition()
+        .duration(tickDuration)
+        .ease(d3.easeLinear)
+        .call(xAxis);
+    
+       let bars = svg.selectAll('.bar').data(yearSlice, d => d.name);
+    
+       bars
+        .enter()
+        .append('rect')
+        .attr('class', d => `bar ${d.name.replace(/\s/g,'_')}`)
+        .attr('x', x(0)+1)
+        .attr( 'width', d => x(d.value)-x(0)-1)
+        .attr('y', d => y(top_n+1)+5)
+        .attr('height', y(1)-y(0)-barPadding)
+        .style('fill', d => d.colour)
+        .transition()
+          .duration(tickDuration)
+          .ease(d3.easeLinear)
+          .attr('y', d => y(d.rank)+5);
+          
+       bars
+        .transition()
+          .duration(tickDuration)
+          .ease(d3.easeLinear)
+          .attr('width', d => x(d.value)-x(0)-1)
+          .attr('y', d => y(d.rank)+5);
+            
+       bars
+        .exit()
+        .transition()
+          .duration(tickDuration)
+          .ease(d3.easeLinear)
+          .attr('width', d => x(d.value)-x(0)-1)
+          .attr('y', d => y(top_n+1)+5)
+          .remove();
 
-      <div class="fake-img l-body">
-      <figure>
-       <img src="images/viz.png" alt="hi"  class="center" height="60%"/>
-      </figure>
-       
-      <p> Here is the same method applied to a significantly more difficult problem, hallucinating a reasonable trajectory in image space for an unseen arrangement of the BBQ and meat in an RLBench Task. </p>
+       let labels = svg.selectAll('.label')
+          .data(yearSlice, d => d.name);
+     
+       labels
+        .enter()
+        .append('text')
+        .attr('class', 'label')
+        .attr('x', d => x(d.value)-8)
+        .attr('y', d => y(top_n+1)+5+((y(1)-y(0))/2))
+        .style('text-anchor', 'end')
+        .html(d => d.name)    
+        .transition()
+          .duration(tickDuration)
+          .ease(d3.easeLinear)
+          .attr('y', d => y(d.rank)+5+((y(1)-y(0))/2)+1);
+             
+    
+   	   labels
+          .transition()
+          .duration(tickDuration)
+            .ease(d3.easeLinear)
+            .attr('x', d => x(d.value)-8)
+            .attr('y', d => y(d.rank)+5+((y(1)-y(0))/2)+1);
+     
+       labels
+          .exit()
+          .transition()
+            .duration(tickDuration)
+            .ease(d3.easeLinear)
+            .attr('x', d => x(d.value)-8)
+            .attr('y', d => y(top_n+1)+5)
+            .remove();
+         
 
      
-        <img src="images/hallucination.png" width="100%" class="center"/>
+       let valueLabels = svg.selectAll('.valueLabel').data(yearSlice, d => d.name);
+    
+       valueLabels
+          .enter()
+          .append('text')
+          .attr('class', 'valueLabel')
+          .attr('x', d => x(d.value)+5)
+          .attr('y', d => y(top_n+1)+5)
+          .text(d => d3.format(',.0f')(d.lastValue))
+          .transition()
+            .duration(tickDuration)
+            .ease(d3.easeLinear)
+            .attr('y', d => y(d.rank)+5+((y(1)-y(0))/2)+1);
+            
+       valueLabels
+          .transition()
+            .duration(tickDuration)
+            .ease(d3.easeLinear)
+            .attr('x', d => x(d.value)+5)
+            .attr('y', d => y(d.rank)+5+((y(1)-y(0))/2)+1)
+            .tween("text", function(d) {
+               let i = d3.interpolateRound(d.lastValue, d.value);
+               return function(t) {
+                 this.textContent = d3.format(',')(i(t));
+              };
+            });
       
      
-
-         
-
-
-  <p> Whilst it does display attractive properties as a reward function and hallucinate visually superb sub-goals and trajectories, when the representations are used  agents are capable of finding local reward minima to exploit instead of solving the task. However, I thought it might be of interest that the latent space can be 
-    structured in this way - whether as the inspiration for future work, a sign not to pursue this path or just as a curiosity!
-
-     <p> If this terminology is familiar, skip to the next section where I’ll outline current
-        work on state representation learning and how this fits in. Otherwise, lets get some background. </p>
-        <hr>
-      <h2> What is State Representation learning?</h2>
-  
-
-      <p> A state is a vector where each dimension describes one aspect of the scene. In the 
-        example of robotic manipulation, the state could be made up of the positions, velocities 
-        and orientations of the gripper and the relevant objects – simple manipulation problems 
-        can be defined in under 20 dimensions. Modern reinforcement learning algorithms quickly 
-        begin to struggle as the dimension of problems increases – and this problem is exacerbated 
-        when working from images, which are effectively comprised of hundreds of thousands of 
-        dimensions. </p>
-
-        <p> Representations are transformations of the input data into a different vector which make it easier to solve
-           downstream tasks. For example, the compressed representations output by the later layers
-            of CNNs summarize the high level features of an image. The representations learnt by
-             supervised learning on image classification tasks are excellent for transfer learning
-              to other similar tasks, but are of limited use for robotic manipulation which
-               requires different information such as the spatial relationship between objects.
-                These requirements led to adjustments like the spatial softmax  <dt-cite key="end2end"></dt-cite>, which 
-                forces the representation to retain spatial information.  </p> 
-                <p> State representation learning is the study of explicitly engineering representations useful for control of the state in downstream tasks like manipulation. This often involves generative models
-                  such as Variational Autoencoders, which are comprehensively explained at Lil'Log <dt-cite key="lillog"></dt-cite> </p>
-                <hr>
-                <h2> Themes in the Research</h2>
-  
-
-      <p> The first theme is to use the distance (typically Euclidean) between the latent representations of states as a better reward function for reinforcement learning or as a loss function for imitation learning. This avoids the difficulty of hand designing complex and failure prone dense reward functions, and allows for a better similarity metric between frames. Srinivas et al <dt-cite key="UPN"></dt-cite>learn representations useful for planning and imitating a set of expert 
-        demonstrations while Ghosh et al  <dt-cite key="Ghosh"></dt-cite> use the difference in the actions used to reach 
-        states with a pretrained policy as a proxy for distance between states. Both approaches learn a representation for states which enables faster learning of new policies. Sermanet et al   <dt-cite key="Sermanet"></dt-cite> 
-         use contrastive losses to build viewpoint invariant representations by drawing frames from
-          the same timestep but different viewpoints together. This worked excellently as a
-           distance measure for imitation learning. All these approaches require either a selection of human tele-operated expert trajectories, or a pretrained goal 
-            conditioned policy  to collect expert trajectories with. </p>
-
-        <p> The second theme is to use the latent space to make it easier to plan trajectories to
-           reach goal states. Typically because it is faster and easier to simulate or optimize in the lower dimensional
-            latent space than the original image space – allowing effective sub-goal generation 
-            <dt-cite key="NAIR"></dt-cite>, trajectory optimisation via Model Predictive Control 
-            <dt-cite key="Ke2019"></dt-cite> or training of RL agents on simulated data <dt-cite key="ha2018worldmodels"></dt-cite>. A particularly interesting paper by Watter et al <dt-cite key="Embed2control"></dt-cite> structure the latent
-             space so that successive states are a linear function of the current state and action, which allows the use of trajectory optimisation algorithms from optimal 
-             control such as LQR to be used. All of the above approaches are relatively computationally intensive, requiring significant simulation of many possible trajectories or reasonably complex optimisation in the latent space – but they can all
-               be learnt in a fully self supervised way from any transitions. </p>
-
-<p> I wondered if it would be possible to structure the state representations so that finding 
-  the best trajectory between two states was the easiest possible problem – that of taking a straight
-   line between their latent representations. This would make it far less computationally 
-   intensive to find sub-goals for long horizon manipulation tasks and also function as a distance metric which uses progress towards the goal as a proxy for distance between states - which could be a better proxy than the others studied.  </p>
-   
-  <p> I thought it might be possible
-     to force points along expert trajectories to lie along lines in latent space if the dimension was higher than the
-      intrinsic dimension of the state (the minimum number of dimensions required to represent 
-      the state), based on the fact that SVMs are able to find linearly separable boundaries 
-      between points when transformed to higher dimensions using the kernel trick. The higher
-       dimension isn’t an issue when working with images as the difference between latent vector
-        sizes in marginal. As it turns out, this was already a familiar concept in control theory called the 'Koopman Operator'. Lusch et al <dt-cite key="Lusch2019DeepDynamics"></dt-cite> use a very similar approach to model nonlinear systems linearly by mapping states to a higher dimensional representations which are eigenvectors of a learnt transition operator K. Recall that the multiplication of an matrix by it's eigenvector gives a scalar mutliple of the eigenvector, and so all states of a system vary along a straight line in latent space.   </p>
-
-        <hr>
-        <h2> Method</h2>
-
-   
-
-      <p> Take two random frames from an expert trajectory as a start (s<sub>i</sub>) and end state (s<sub>g</sub>),  
-        and encode into latent variables (z<sub>i</sub>, z<sub>g</sub>) with a network that functions as the encoder 
-        of a VAE.  Sample the frames between them and interpolate between (z<sub>i</sub>, z<sub>g</sub>) proportionately
-         to the number of timesteps away each frame is. Using another network as a decoder of the VAE,
-          decode these interpolated variables and compute the reconstruction loss with the sampled 
-          intermediate frames. Backpropogate through the decode, interpolation and encdoer and the VAE learns to jointly encode/reconstruct and enforce that the points lie
-         along the interpolated path in latent space with a single loss term.</p>
-         
-         <img src="images/trainingscheme.png" alt="hi" class="center"/>
-         <div class="fake-img l-body">
-         <figure width="300px">
-           <figcaption> <b> Training of the VAE using an expert trajectory from the point mass task.  </b></figcaption>
-         </figure>
-         </div>
-
-         <img src="images/short_states_seq.png" alt="hi" class="center"/>
-         <div class="fake-img l-body">
-          
-         <figure width="300px">
-           <figcaption> <b> Interpolation between latent transformations mapped back to state space showing a valid trajectory. </b></figcaption>
-         </figure>
-         </div>
-         
-        <p>
-         
-         
-
-         Earlier, when I tried a
-          separate reconstruction loss and a linearization loss by taking the distance between the
-           latent encodings of generated frames along a trajectory to the line between z<sub>i</sub>, z<sub>g</sub>, it failed to 
-           work because balancing the weightings of reconstruction and linearization loss was extremely 
-           difficult. Additionally, in order to get it to work on images, content loss <dt-cite key="Hou2016DeepAutoencoder"></dt-cite> had to be used  in addition to pixelwise 
-           loss as the reconstruction loss. 
-        </p>
-
-        <p>To use it to plan trajectories, simply encode any pair of start and end goal states, interpolate between 
-          them and decode along the path. To use it as a reward function, simply encode and take the 
-          L2 distance between frames. 
-          </p>
-
-          <hr>
-        <h2> Results</h2>
-
-        <h3>Multi-task Embeddings</h3>
-        <p>Like all the methods from the first theme of research, this method does not learn exlcusively from the transitions experienced during a policy's random exploration and requires a degree of supervision. As a result, it would be most useful if it could be pretrained on large datasets of video of various tasks being completed (which is much easier to collect and generalize than teleoperation data) - and then used as a baseline embedding which could be transfer learned to new tasks with a handful of task specific demonstrations. 
-
-          As an inital test of this, the same model was trained on 3 tasks from RLBench <dt-cite key="James2019RLBench"></dt-cite> , the dish placement, oven opening and BBQ grilling tasks. Each tasks has 3 viewpoints, the left and right shoulder cameras and the gripper camera. The model achieves some amount of success here, clearly hallcuinating reasonable intermediate frames for use as sub-goals inclduing the changing viewpoint of the gripper. </p>
-        
-
-        
-         <div class="fake-img l-body">
-          <img src="images/left.png" alt="hi" class="center"/>
-         <figure width="300px">
-           <figcaption> <b> Generated intermediate frames on the dish, oven and grill tasks, the limited
-            data on the dish task affects reconstruction quality, but on all viewpoints the gripper
-            decoder clearly learns the concept and timing of required grasps and hallucinates them
-            appropriately.  </b></figcaption>
-         </figure>
-         </div>
+      valueLabels
+        .exit()
+        .transition()
+          .duration(tickDuration)
+          .ease(d3.easeLinear)
+          .attr('x', d => x(d.value)+5)
+          .attr('y', d => y(top_n+1)+5)
+          .remove();
     
-        <h3> Comparison with the Latent Space of a Standard VAE</h3>
+      yearText.html(~~year);
+     
+     if(year == 2018) ticker.stop();
+     year = d3.format('.1f')((+year) + 0.1);
+   },tickDuration);
 
-       <p> To highlight the difference between the properties of the latent space constructed by a standard variational autoencoder and this one, observe the stark difference in interpolation between the following two images on the pointmass task.  With a standard variational autoencoder, the interpolation between the embeddings of two states does gradually change between the two images, but the interpolation is physically infeasible. By contrast, interpolation in a linear latent space shows a valid path between two new images.</p>
-        
-        <img src="images/bad_im_interp.png" alt="hi" class="center"/>
-        <div class="fake-img l-body">
-         
-         <figure width="300px">
-           <figcaption> <b>   A standard VAE trained on images, without linear structure in the latent space. Interpolation between the start and end state is physically infeasible and thus states which are close in the latent space do not correspond to progress. </b></figcaption>
-         </figure>
-         </div>
-
-         <img src="images/beaut_valid.png" alt="hi" class="center"/>
-        <div class="fake-img l-body">
-         
-         <figure width="300px">
-           <figcaption> <b>  Successful image based model with a linearised latent space. </b></figcaption>
-         </figure>
-         </div>
-
-
-        <h3> Latent Distance as an Effective Reward Metric</h3>
-
-        <p> L2 distance in the latent space should correspond to the true distance between a state and a goal. With a linearly structured latent space the latent distance decreases throughout the entire trajectory, providing a clear reward landscape to follow. By contrast, the standard VAE and the pixel-wise distance are a strong measure in the final frames of a trajectory, once it is very close to the goal image - but pre-contact it is a flat or increasing measure, and as a result it would be extremely difficult for an agent to escape the reward plateau. </p>
-        <img src="images/rew.png" alt="hi" class="center"/>
-        <div class="fake-img l-body">
-         
-         <figure width="300px">
-           <figcaption> <b>   For a sample of expert trajectories, each in a different color, the latent distance between the embedding of each frame with the goal with an autoencoder with linearised latent space, a standard autoencoder, and the pixel-wise distance between the original frame and the goal image is compared from left to right. </b></figcaption>
-         </figure>
-         </div>
-        
-         <p> Unfortunately, in experiments with using the latent distance as a reward metric - the policy still seemed to be able to find local minima to exploit, and this remains an unsolved issue with the method. </p>
-       
-
-
-        <h3> Working in High Dimensions</h3>
-
-        <p> As the dimensionality of space increases, the density of points uniformly distributed
-          throughout the volume of the space will cluster in a thin shell on a hypersphere (a set
-          of points at constant distance from the origin) in that set of dimensions. This contradicts lower dimensional intuition, which suggests points are more uniformly distributed
-          throughout the space. This means that linear interpolation between points in high dimensions will typically traverse regions of space with very low probability density and so a generative model (like our VAE) will struggle to reconstruct them. Kilcher et al <dt-cite key="Kilcher2018SemanticModels"></dt-cite> demonstrated
-          that spherical interpolation between points in high dimensions results in significantly
-          better reconstruction with generative models. 
-          
-          <img src="images/hypersphere.png" alt="hi" class="center"/>
-        <div class="fake-img l-body">
-         
-         <figure width="300px">
-           <figcaption> <b>   3D Visualisation of a hypersphere demonstrating that linear interpolation
-            takes a path through regions of state space without many embeddings from which the
-            model will not be trained to reconstruct, while spherical interpolation traverses familiar
-            space. </b></figcaption>
-         </figure>
-         </div>
-         
-        <p> I tested this and found that using spherical interpolation was only roughly as successful as linear interpolation. I hypothesized that when using linear interpolation, the method of jointly optimizing for reconstruction and interpolation spreads mass throughout the entire hypersphere - which means spherical interpolation was unnecessary. 
-         I tested this on the 64 dimensional encodings of images by sampling a batch of trajectories, calculating their vector magnitudes and centering them about the average vector magnitude. This gave an approximately normal distribution of values, indicating that the method spreads the
-         density throughout the space normally instead of in a thin shell and thus linear interpolation is valid.
-        </p>
-         
-        
-        <div class="fake-img l-body">
-          <img src="images/vectorhisto.png" alt="hi" class="center"/>
-         <figure width="300px">
-         </figure>
-         </div>
-
-         <p>Moving forward, spherical interpolation makes significantly more sense because it allows for harmonic motion (where continuing will return the state to the original state) and allows for multimodal paths between states. </p>
-         
-        
-         <h3> How Many Dimensions are Required?</h3>
-
-         <p> Recall that the original hypothesis was that higher dimensions than the original state
-          space would be required to model problems. To confirm this, reconstruction quality from
-          interpolation through the latent space was tested for a set of different values for the
-          dimensionality of the latent space. The simulation environment used was the point mass
-          and block environment, as a result the observation vector size was 8 - containing the xy
-          positions and velocities of both the mass and the block.
-          The results indicate that the required set of dimensions is one higher than the intrinsic
-          dimension of the problem, with decreasing returns on dimensionality after two higher. In
-          this case, 4 dimensions are required to represent the positions of the mass and the block,
-          and a 4 dimensional latent space fails to successfully linearize the space in terms of position. When represented
-          in 5 or greater dimensions the quality of reconstruction increases significantly, but each
-          additional dimension after the latent dimension exceeds the intrinsic dimension has a
-          decreasing effect.
-          </p>
-
-
-          <img src="images/dimensions.png" alt="hi" class="center"/>
-          <div class="fake-img l-body">
-           
-           <figure width="300px">
-             <figcaption> <b>                Reconstruction Loss for a range of latent dimensions exhibiting decreasing returns after the dimensions exceed the intrinsic dimension of 4 by two. </b></figcaption>
-           </figure>
-           </div>
-
-
-           <h2> Algorithm and Architecture Specifics</h2>
-
-           <p> Here is a more detailed breakdown of the training process. You can also find the (messy) code in the repo <dt-fn> https://github.com/sholtodouglas/linearised_state_representations </dt-fn> with architecture details. </p>
-
-           <img src="images/algo.png" alt="hi" class="center"/>
-          <div class="fake-img l-body">
-           
-           <figure width="300px">
-             
-           </figure>
-           </div>
-
-
-
-        
-
-        
-
-</dt-article>
-
-<dt-appendix>
-</dt-appendix>
-
-<script type="text/bibliography">
-
-
-
-  @article{gregor2015draw,
-    title={DRAW: A recurrent neural network for image generation},
-    author={Gregor, Karol and Danihelka, Ivo and Graves, Alex and Rezende, Danilo Jimenez and Wierstra, Daan},
-    journal={arXivreprint arXiv:1502.04623},
-    year={2015},
-    url={https://arxiv.org/pdf/1502.04623.pdf}
-  }
-
-  @article{end2end,
-    title={End-to-End Training of Deep Visuomotor Policies},
-    author={Levine, Sergey and Finn, Chelsea and Darrell Trevor and Pieter Abbeel},
-    journal={Journal of Machine Learning Research},
-    year={2016},
-    url={https://arxiv.org/pdf/1504.00702.pdf}
-  }
-
-  @article{UPN,
-    title={Universal Planning Networks},
-    author={Srinivas, Aravind  and  Jabri ,Allan and  Abbeel , Pieter and Levine, Sergey and  Finn, Chelsea},
-    journal={Proceedings of the 35 th International Conference on Machine
-      Learning},
-    year={2018},
-    url={http://proceedings.mlr.press/v80/srinivas18b/srinivas18b.pdf}
-  }
-
-  @article{Ghosh,
-    title = {Learning Actionable Representations with Goal-Conditioned Policies},
-    year = {2019},
-    journal = {International Conference on Learning Representations},
-    author = {Ghosh, Dibya and Gupta, Abhishek and Levine, Sergey},
-    url = {https://arxiv.org/pdf/1811.07819.pdf}
-}
-
-@inproceedings{Sermanet,
-  title = {Time-Contrastive Networks: Self-Supervised Learning from Multi-View Observation},
-  year = {2017},
-  booktitle = {The Conference on Computer Vision and Pattern Recognition 2017, CVPR},
-  author = {Sermanet, Pierre and Lynch, Corey and Hsu, Jasmine and Levine, Sergey and Brain, Google},
-  url = {https://arxiv.org/pdf/1704.06888v1.pdf},
-  arxivId = {1704.06888v1}
-}
-
-@inproceedings{NAIR,
-  title = {Hierarchical Foresight: Self-Supervised Learning of Long-Horizon Tasks via Visual Subgoal Generation},
-  year = {2019},
-  booktitle = {International Conference on Learning Representations, 2020 (Poster)},
-  author = {Nair, Suraj and Finn, Chelsea},
-  url = {https://arxiv.org/pdf/1909.05829.pdf},
-}
+ });
+    
+ const halo = function(text, strokeWidth) {
+  text.select(function() { return this.parentNode.insertBefore(this.cloneNode(true), this); })
+    .style('fill', '#ffffff')
+     .style( 'stroke','#ffffff')
+     .style('stroke-width', strokeWidth)
+     .style('stroke-linejoin', 'round')
+     .style('opacity', 1);
+   
+}   
   
 
-@inproceedings{Ke2019,
-  title = {Learning Dynamics Model in Reinforcement Learning by Incorporating the Long Term Future},
-  year = {2019},
-  booktitle = {ICLR},
-  author = {Ke, Nan Rosemary and Singh, Amanpreet and Touati, Ahmed and Goyal, Anirudh and Bengio, Yoshua and Parikh, Devi and Batra, Dhruv},
-  url = {http://arxiv.org/abs/1903.01599},
-  arxivId = {1903.01599}
-}
-
-
-@inproceedings{Embed2control,
-  title = {Embed to Control: A Locally Linear Latent
-    Dynamics Model for Control from Raw Images},
-  year = {2015},
-  booktitle = {Neural Information Processing Systems},
-  author = {Watter, Manuel and Springenberg, Jost Tobias and Boedecker, Joschka and Riedmiller, Martin},
-  url = {https://arxiv.org/abs/1506.07365}
-}
-
-
-@incollection{ha2018worldmodels,
-  title = {Recurrent World Models Facilitate Policy Evolution},
-  author = {Ha, David and Schmidhuber, J{\"u}rgen},
-  booktitle = {Advances in Neural Information Processing Systems 31},
-  pages = {2451--2463},
-  year = {2018},
-  publisher = {Curran Associates, Inc.},
-  url = {https://papers.nips.cc/paper/7512-recurrent-world-models-facilitate-policy-evolution},
-  note = "\url{https://worldmodels.github.io}",
-}
-
-@article{Lusch2019DeepDynamics,
-  title = {Deep learning for universal linear embeddings of nonlinear dynamics},
-  year = {2019},
-  journal = {Nature},
-  author = {Lusch, Bethany and Nathan Kutz, J and Brunton, Steven L},
-  url = {www.nature.com/naturecommunications},
-  doi = {10.1038/s41467-018-07210-0}
-}
-
-@article{Kilcher2018SemanticModels,
-  title = {Semantic Interpolation In Implicit Models},
-  year = {2018},
-  journal = {International Conference on Learning Representations, ICLR 2018},
-  author = {Kilcher, Yannic and Lucchi, Aurélien and Hofmann, Thomas},
-  url = {https://arxiv.org/pdf/1710.11381.pdf?fbclid=IwAR1O0dlLlChtNQpDG-KR0y-Fw045aOV_iEd2mRyD-1wu9INkbs5d_IhidoQ},
-  arxivId = {1710.11381v3}
-}
-
-@techreport{Hou2016DeepAutoencoder,
-  title = {Deep Feature Consistent Variational Autoencoder},
-  year = {2016},
-  author = {Hou, Xianxu and Shen, Linlin and Qiu, Guoping},
-  url = {https://arxiv.org/pdf/1610.00291.pdf},
-  isbn = {1610.00291v1},
-  arxivId = {1610.00291v1}
-}
-
-@misc{James2019RLBench,
-  title = {RLBench: The Robot Learning Benchmark &  Learning Environment},
-  year = {2019},
-  author = {James, Stephen and Ma, Zicong and Arrojo, David Rovick and Davison, Andrew J.},
-  publisher = {Imperial College},
-  url = {http://arxiv.org/abs/1909.12271},
-  arxivId = {1909.12271}
-}
-
-@misc{lillog,
-  title = {From Autoencoder to Beta-VAE},
-  year = {2018},
-  author = {Lilian Weng},
-  url = {https://lilianweng.github.io/lil-log/2018/08/12/from-autoencoder-to-beta-vae.html}
-}
-
-
-
-</script>
-</html>
-
-<!-- Additionally,  it could be 
-    applied to image based domains – where a large amount of sequences/videos are available of tasks
-     being performed – and thus provide pretrained representations which could be used for transfer 
-     learning (as word representations are used to accelerate downstream tasks in NLP).</p>
-and inspire some thoughts as to whether this is possible without supervision 
-    (e.g the sukbahtar one I think is close) (Mention dibya paper 2).  -->
+  </script>
+</body>
